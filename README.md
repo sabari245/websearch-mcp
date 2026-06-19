@@ -1,16 +1,18 @@
-# websearch-mcp
+# morph-websearch-mcp
 
-MCP server providing web search, web fetch, and AI-powered web extraction — all results compacted for minimal context usage.
+MCP server that brings web search, page fetching, and AI-powered research to any MCP-compatible client. Backed by [crawl4ai](https://crawl4ai.com) for crawling and [morphllm](https://morphllm.com) for context compaction and agent reasoning.
+
+## Why
+
+LLMs drown in boilerplate. Every webpage you feed them includes nav bars, cookie banners, tracking hashes, and ads. morph-websearch-mcp solves this by compacting every page through [morph compact](https://docs.morphllm.com/sdk/components/compact) — a 33,000 tok/s engine that drops irrelevant lines without rewriting — before the content ever reaches your LLM.
 
 ## Tools
 
-| Tool | Input | Output |
-|------|-------|--------|
-| `websearch` | `{query, num_results?}` | `[{title, url, snippet, content}]` |
-| `webfetch` | `{url}` | `{url, content}` |
-| `webextract` | `{query}` | `{answer, sources: [{title, url}]}` |
-
-All page content is compacted via morph before returning, stripping irrelevant boilerplate.
+| Tool | What it does |
+|------|--------------|
+| `websearch` | Searches DuckDuckGo, fetches all result pages, compacts each, returns clean content |
+| `webfetch` | Fetches a single URL and returns compacted markdown |
+| `webextract` | AI agent that iteratively searches and fetches to answer a query using [morph-dsv4flash](https://docs.morphllm.com/sdk/components/fast-models) |
 
 ## Install
 
@@ -22,7 +24,7 @@ uv add morph-websearch-mcp
 
 ## Setup
 
-Set your morph API key:
+Get an API key from [morphllm](https://morphllm.com/dashboard/api-keys), then:
 
 ```bash
 export MORPH_API_KEY="sk-..."
@@ -33,28 +35,34 @@ export MORPH_API_KEY="sk-..."
 ```json
 {
   "mcpServers": {
-    "websearch-mcp": {
+    "websearch": {
       "command": "websearch-mcp",
-      "env": {
-        "MORPH_API_KEY": "sk-..."
-      }
+      "env": { "MORPH_API_KEY": "sk-..." }
     }
   }
 }
 ```
 
-If installing from source:
+## How it works
 
-```json
-{
-  "mcpServers": {
-    "websearch-mcp": {
-      "command": "uv",
-      "args": ["run", "--directory", "/path/to/websearch-mcp", "main.py"],
-      "env": {
-        "MORPH_API_KEY": "sk-..."
-      }
-    }
-  }
-}
 ```
+query → DuckDuckGo HTML → crawl4ai (parallel fetch) → morph compact → clean results
+                                                                          ↓
+                                                              morph-dsv4flash agent loop
+                                                        (only for webextract — searches
+                                                         and fetches autonomously)
+```
+
+Every page fetched by `websearch` and `webfetch` passes through morph compact before being returned. The `webextract` agent uses morph-dsv4flash (DeepSeek V4 Flash, ~150 tok/s) in an OpenAI-compatible tool-calling loop to find answers across multiple search/fetch cycles.
+
+## Services used
+
+| Service | Purpose | Docs |
+|---------|---------|------|
+| [crawl4ai](https://crawl4ai.com) | Headless web crawling, HTML-to-markdown | [docs.crawl4ai.com](https://docs.crawl4ai.com) |
+| [morph compact](https://morphllm.com) | Context compression at 33k tok/s, 50-70% reduction | [docs.morphllm.com/sdk/components/compact](https://docs.morphllm.com/sdk/components/compact) |
+| [morph fast models](https://morphllm.com) | DeepSeek V4 Flash for agent reasoning | [docs.morphllm.com/sdk/components/fast-models](https://docs.morphllm.com/sdk/components/fast-models) |
+
+## License
+
+MIT
