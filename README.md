@@ -15,9 +15,9 @@ All page content is compacted via morph before returning, stripping irrelevant b
 ## Install
 
 ```bash
-pip install websearch-mcp
+pip install morph-websearch-mcp
 # or
-uv add websearch-mcp
+uv add morph-websearch-mcp
 ```
 
 ## Setup

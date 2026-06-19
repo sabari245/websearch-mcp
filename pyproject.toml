@@ -1,5 +1,5 @@
 [project]
-name = "websearch-mcp"
+name = "morph-websearch-mcp"
 version = "0.1.0"
 description = "Web search MCP server with AI-powered content extraction"
 readme = "README.md"
