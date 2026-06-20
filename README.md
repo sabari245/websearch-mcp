@@ -2,20 +2,21 @@
 
 Web search, page fetching, and AI-powered research for MCP-compatible clients.
 
-`morph-websearch-mcp` searches DuckDuckGo, fetches pages with [crawl4ai](https://crawl4ai.com), and compacts noisy webpage content with [Morph](https://morphllm.com) before returning it to your MCP client. It is useful when an assistant needs current web context without dumping full pages full of navigation, ads, cookie banners, and tracking boilerplate into the model.
+`morph-websearch-mcp` searches DuckDuckGo, fetches pages with [crawl4ai](https://crawl4ai.com), and compacts noisy webpage content with [Morph](https://morphllm.com). By default, results are AI-enriched into a synthesized answer with cited sources. Set `enrich=false` to get raw page content instead.
 
 ## Features
 
 | Tool | Description |
 | --- | --- |
-| `websearch` | Searches DuckDuckGo, fetches result pages, compacts each page, and returns clean results with content. |
+| `websearch` | Searches DuckDuckGo, fetches result pages, and returns AI-enriched answers with sources by default. Pass `enrich=false` for raw results. |
 | `webfetch` | Fetches one URL and returns compacted markdown. |
-| `webextract` | Runs an agentic research loop that searches and fetches pages until it can answer the query with sources. |
+
+Works without a Morph API key — falls back to uncompacted scraping with a warning. Set the key to enable AI compaction and enrichment.
 
 ## Requirements
 
 - Python 3.13 or newer
-- A Morph API key from [morphllm.com/dashboard/api-keys](https://morphllm.com/dashboard/api-keys)
+- (Optional) A Morph API key from [morphllm.com/dashboard/api-keys](https://morphllm.com/dashboard/api-keys) for compaction and AI enrichment
 - An MCP-compatible client, such as OpenCode, Claude Desktop, Cursor, or another client that can launch local MCP servers
 
 ## Install
@@ -130,12 +131,13 @@ Use this local command in an MCP client while developing:
 
 ### `websearch`
 
-Searches the web and returns a list of results with compacted page content.
+Searches the web. By default returns an AI-enriched answer with sources. Pass `enrich=false` for raw page content.
 
 ```json
 {
   "query": "latest Python 3.13 release notes",
-  "num_results": 5
+  "num_results": 5,
+  "enrich": true
 }
 ```
 
@@ -149,26 +151,18 @@ Fetches one page and returns compacted markdown.
 }
 ```
 
-### `webextract`
-
-Runs an agentic research loop and returns an answer with sources.
-
-```json
-{
-  "query": "What changed in the latest crawl4ai release?"
-}
-```
-
 ## How It Works
 
 ```text
-query -> DuckDuckGo HTML -> crawl4ai fetch -> Morph compact -> clean MCP result
-                                                        |
-                                                        v
-                                  webextract agent loop with morph-dsv4flash
+query -> DuckDuckGo HTML -> crawl4ai fetch -> Morph compact -> enriched answer (default)
+                                                    |
+                                                    v
+                                          raw results + hint (enrich=false)
 ```
 
-`websearch` and `webfetch` compact fetched page content before returning it. `webextract` uses Morph's OpenAI-compatible chat API with tool calls to search, fetch, and synthesize an answer across several research steps.
+`websearch` fetches each result page and compacts its content via Morph. With `enrich=true` (default), the compacted results are fed to a Morph-powered agent that searches further if needed and synthesizes a final answer with cited sources. With `enrich=false`, raw compacted results are returned with a hint suggesting enrichment or manual `webfetch` calls.
+
+When `MORPH_API_KEY` is not set, the server runs in no-AI mode — content is returned uncompacted with a warning, and enrichment falls back to raw results.
 
 ## Troubleshooting
 
@@ -198,7 +192,7 @@ If browser-based crawling fails on a new machine, reinstall the package and make
 | --- | --- | --- |
 | [crawl4ai](https://crawl4ai.com) | Headless crawling and HTML-to-markdown extraction | [docs.crawl4ai.com](https://docs.crawl4ai.com) |
 | [Morph compact](https://morphllm.com) | Context compaction for fetched web content | [docs.morphllm.com/sdk/components/compact](https://docs.morphllm.com/sdk/components/compact) |
-| [Morph fast models](https://morphllm.com) | Agent reasoning for `webextract` | [docs.morphllm.com/sdk/components/fast-models](https://docs.morphllm.com/sdk/components/fast-models) |
+| [Morph fast models](https://morphllm.com) | Agent reasoning for enriched websearch | [docs.morphllm.com/sdk/components/fast-models](https://docs.morphllm.com/sdk/components/fast-models) |
 
 ## License
 
